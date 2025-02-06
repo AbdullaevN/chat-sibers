@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { auth, db } from "./firebase"; // our imports 
+import { auth, db,googleProvider } from "./firebase"; // our imports 
 import {
   collection,
   addDoc,
@@ -11,7 +11,9 @@ import {
   doc,
   setDoc
 } from "firebase/firestore";
-import { signOut } from "firebase/auth";
+import { signOut,signInWithPopup } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
+
 
 const App = () => {
   //states for storing
@@ -114,6 +116,50 @@ const App = () => {
   };
 
 
+
+  //deldete
+  const handleRemoveUser = async (userId) => {
+    if (userId === user.uid) {
+      // Создатель канала не может удалить себя
+      alert("You cannot remove yourself from the channel.");
+      return;
+    }
+  
+    try {
+      // Проверка, является ли текущий пользователь создателем канала
+      if (selectedChannel.createdBy !== user.uid) {
+        alert("You do not have permission to remove users from this channel.");
+        return;
+      }
+  
+      // Обновление канала, удаляя пользователя из списка участников
+      const channelRef = doc(db, "channels", selectedChannel.id);
+      await setDoc(
+        channelRef,
+        {
+          participants: selectedChannel.participants.filter((uid) => uid !== userId),
+        },
+        { merge: true }
+      );
+      alert("User removed from channel");
+    } catch (error) {
+      console.error("Error removing user: ", error);
+      alert("Failed to remove user.");
+    }
+  };
+  
+  
+// Google login function
+const handleLogin = async () => {
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch (error) {
+    console.error("Error signing in: ", error);
+    alert("Error signing in, please try again.");
+  }
+};
+
+
   //logout
   const handleLogout = async () => {
     await signOut(auth);
@@ -126,6 +172,10 @@ const App = () => {
     channel.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+
+
+  console.log(selectedChannel);
+console.log(users);
   return (
     <div className="p-6 bg-gray-50 min-h-screen text-gray-800">
       {user ? (
@@ -179,44 +229,75 @@ const App = () => {
             </div>
 
             {selectedChannel && (
-              <div className="bg-white shadow-md rounded-lg p-4">
-                <h2 className="text-xl font-bold mb-3">{selectedChannel.name}</h2>
-                <div className="h-64 overflow-y-auto border rounded-lg p-3 space-y-2">
-                  {messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`p-2 rounded-lg ${
-                        msg.sender === user.uid
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-gray-200 text-gray-800"
-                      }`}
-                    >
-                      <strong>{users[msg.sender]?.displayName || "Неизвестный"}:</strong> {msg.text}
-                    </div>
-                  ))}
-                </div>
+  <div className="bg-white shadow-md rounded-lg p-4">
+    <h2 className="text-xl font-bold mb-3">{selectedChannel.name}</h2>
+    <div className="h-64 overflow-y-auto border rounded-lg p-3 space-y-2">
+      {messages.map((msg) => (
+        <div
+          key={msg.id}
+          className={`p-2 rounded-lg ${
+            msg.sender === user.uid
+              ? "bg-blue-100 text-blue-800"
+              : "bg-gray-200 text-gray-800"
+          }`}
+        >
+          <strong>{users[msg.sender]?.displayName || "Неизвестный"}:</strong> {msg.text}
+        </div>
+      ))}
+    </div>
+щшощ
+{selectedChannel.participants && (
+  <div className="mt-3">
+    <h3 className="text-lg font-semibold mb-2">Participants</h3>
+    {selectedChannel.participants.map((participantId) => (
+      <div
+        key={participantId}
+        className="flex justify-between items-center p-2 bg-gray-100 rounded-lg mb-2"
+      >
+        <span>{users[participantId]?.displayName || "Unknown"}</span>
+        {selectedChannel.createdBy === user.uid && participantId !== user.uid && (
+          <button
+            onClick={() => handleRemoveUser(participantId)}
+            className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-lg"
+          >
+            Remove
+          </button>
+        )}
+      </div>
+    ))}
+  </div>
+)}
 
-                <div className="flex gap-2 mt-3">
-                  <input
-                    type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Enter message"
-                    className="flex-1 border rounded-lg p-2 focus:ring-2 focus:ring-green-400"
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
-                  >
-                    Send
-                  </button>
-                </div>
-              </div>
-            )}
+
+
+    <div className="flex gap-2 mt-3">
+      <input
+        type="text"
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="Enter message"
+        className="flex-1 border rounded-lg p-2 focus:ring-2 focus:ring-green-400"
+      />
+      <button
+        onClick={handleSendMessage}
+        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
+      >
+        Send
+      </button>
+    </div>
+  </div>
+)}
+
           </div>
         </div>
       ) : (
-        <div className="text-center text-lg font-medium text-gray-600">
+        <div className="text-center text-lg font-medium text-gray-600 flex flex-col w-auto items-center text-center">
+           <button
+            onClick={handleLogin}
+            className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition w-sm"
+          >
+            Log in with Google
+          </button>
           Please log in to continue.
         </div>
       )}
