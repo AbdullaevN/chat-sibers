@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   build: {
     rollupOptions: {
-      external: ['firebase/firestore']
+      external: ['firebase/auth']
     }
   },
   content: [
