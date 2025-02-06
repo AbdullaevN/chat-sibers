@@ -12,7 +12,7 @@ import {
   setDoc
 } from "firebase/firestore";
 import { signOut,signInWithPopup } from "firebase/auth";
-import { signInWithEmailAndPassword } from "firebase/auth";
+// import { signInWithEmailAndPassword } from "firebase/auth";
 
 
 const App = () => {
@@ -126,13 +126,13 @@ const App = () => {
     }
   
     try {
-      // Проверка, является ли текущий пользователь создателем канала
+      // 
       if (selectedChannel.createdBy !== user.uid) {
         alert("You do not have permission to remove users from this channel.");
         return;
       }
   
-      // Обновление канала, удаляя пользователя из списка участников
+      // update
       const channelRef = doc(db, "channels", selectedChannel.id);
       await setDoc(
         channelRef,
@@ -291,7 +291,7 @@ console.log(users);
           </div>
         </div>
       ) : (
-        <div className="text-center text-lg font-medium text-gray-600 flex flex-col w-auto items-center text-center">
+        <div className=" text-lg font-medium text-gray-600 flex flex-col w-auto items-center text-center">
            <button
             onClick={handleLogin}
             className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition w-sm"
