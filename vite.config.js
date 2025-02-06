@@ -6,8 +6,18 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   build: {
     rollupOptions: {
-      external: ['firebase/auth']
+      output: {
+        manualChunks(id) {
+           if (id.includes('firebase')) {
+            return 'firebase';
+          }
+        }
+      }
+      // external: ['firebase/auth']
     }
+  },
+  optimizeDeps: {
+    include: ["firebase/app", "firebase/auth", "firebase/firestore"],
   },
   content: [
     "./index.html",
@@ -17,6 +27,6 @@ export default defineConfig({
     extend: {},
   },
   plugins: [
-    tailwindcss(),
-  ],
+    tailwindcss(),react()
+  ], 
 })

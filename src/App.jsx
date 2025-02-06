@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { auth, db } from "./firebase";
+import { auth, db } from "./firebase"; // our imports 
 import {
   collection,
   addDoc,
@@ -14,46 +14,48 @@ import {
 import { signOut } from "firebase/auth";
 
 const App = () => {
-  const [channelName, setChannelName] = useState("");
-  const [channels, setChannels] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [user, setUser] = useState(null);
-  const [selectedChannel, setSelectedChannel] = useState(null);
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
-  const [users, setUsers] = useState({});  // Инициализация состояния для пользователей
+  //states for storing
+  const [channelName, setChannelName] = useState(""); //new channel name
+  const [channels, setChannels] = useState([]); //list of channels
+  const [searchTerm, setSearchTerm] = useState(""); //search channel
+  const [user, setUser] = useState(null);  //current user
+  const [selectedChannel, setSelectedChannel] = useState(null); //choosed our channel 
+  const [message, setMessage] = useState(""); //text message
+  const [messages, setMessages] = useState([]); //list of messages in selected channel
+  const [users, setUsers] = useState({});  //initial state for users
 
-  // Слушаем изменения в коллекции users
+
+  // Get a list of users from the "users" collection
   useEffect(() => {
     const unsubscribeUsers = onSnapshot(collection(db, "users"), (snapshot) => {
       const usersData = {};
       snapshot.forEach((doc) => {
-        usersData[doc.id] = doc.data();  // Сохраняем данные пользователя
+        usersData[doc.id] = doc.data();  //  save stste user 
       });
-      setUsers(usersData);  // Обновляем состояние пользователей
+      setUsers(usersData);  //update state users
     });
 
     return () => unsubscribeUsers();
   }, []);
 
-  // Слушаем изменения в каналах
+  // channel
   useEffect(() => {
     const unsubscribe = onSnapshot(
-      query(collection(db, "channels"), orderBy("createdAt", "desc")),
+      query(collection(db, "channels"), orderBy("createdAt", "desc")), // get channels in order of creation
       (snapshot) => {
-        setChannels(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+        setChannels(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))); // save channels to state
       }
     );
 
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
-      setUser(user);
+      setUser(user); // Write the user to the state
       if (user) {
-        // Если пользователь авторизован, добавляем его в коллекцию users, если еще нет
+        // if user is authorized add him to the users 
         const userDocRef = doc(db, "users", user.uid);
         getDoc(userDocRef).then((docSnap) => {
           if (!docSnap.exists()) {
             setDoc(userDocRef, {
-              displayName: user.displayName || "Неизвестный",
+              displayName: user.displayName || "no name",
               email: user.email,
               uid: user.uid,
             });
@@ -68,7 +70,9 @@ const App = () => {
     };
   }, []);
 
-  // Слушаем изменения в сообщениях выбранного канала
+
+
+  //changes in messages of the selected channel
   useEffect(() => {
     if (selectedChannel) {
       const unsubscribe = onSnapshot(
@@ -81,32 +85,43 @@ const App = () => {
     }
   }, [selectedChannel]);
 
+ 
   const handleAddChannel = async () => {
-    if (channelName.trim() === "") return;
-    await addDoc(collection(db, "channels"), {
-      name: channelName,
-      createdAt: serverTimestamp(),
-      createdBy: user.uid,
-      participants: [user.uid],
-    });
-    setChannelName("");
+    try {
+      if (channelName.trim() === "") return;
+      await addDoc(collection(db, "channels"), {
+        name: channelName,
+        createdAt: serverTimestamp(), //set server time
+        createdBy: user.uid, //write creator channel id
+        participants: [user.uid],
+      });
+      setChannelName("");
+    } catch (error) {
+      console.error("Error adding channel: ", error);
+    }
   };
+  
 
   const handleSendMessage = async () => {
-    if (message.trim() === "") return;
+    if (message.trim() === "") return; // check that the message is not empty
     await addDoc(collection(db, `channels/${selectedChannel.id}/messages`), {
       text: message,
       createdAt: serverTimestamp(),
-      sender: user.uid,
-      name: user.displayName || "Неизвестный",  // Имя пользователя добавляется в сообщение
+      sender: user.uid, //id sender
+      name: user.displayName || "no name",  // name user
     });
-    setMessage("");
+    setMessage(""); //clean
   };
 
+
+  //logout
   const handleLogout = async () => {
     await signOut(auth);
   };
 
+
+
+  //filter channel by search
   const filteredChannels = channels.filter((channel) =>
     channel.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
